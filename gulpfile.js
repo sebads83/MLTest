@@ -1,26 +1,17 @@
 //*********** IMPORTS *****************
-var gulp 		= require('gulp');
-var gutil 		= require('gulp-util');
-var	concat 		= require('gulp-concat');
-var sass 		= require('gulp-ruby-sass');
-var sourcemaps  = require('gulp-sourcemaps');
-var rename 		= require("gulp-rename");
-var uglify 		= require("gulp-uglify");
-var minifyHTML 	= require('gulp-minify-html');
-var	watch 		= require('gulp-watch');
-
-gulp.task('autoprefixer', function () {
-    var postcss      = require('gulp-postcss');
-    var autoprefixer = require('autoprefixer');
-
-    return gulp.src('css/**/*.css')
-        .pipe(sourcemaps.init())
-        .pipe(postcss([ autoprefixer({ browsers: ['last 2 versions'] }) ]))
-        .pipe(sourcemaps.write('./maps', {addComment: false}))
-        .pipe(gulp.dest('css'));
-});
-
-//** Sass para DEV
+var gulp 		 = require('gulp');
+var gutil 		 = require('gulp-util');
+var	concat 		 = require('gulp-concat');
+var sass 		 = require('gulp-ruby-sass');
+var sourcemaps   = require('gulp-sourcemaps');
+var rename 		 = require("gulp-rename");
+var uglify 		 = require("gulp-uglify");
+var minifyCss    = require('gulp-minify-css');
+var minifyHTML 	 = require('gulp-minify-html');
+var watch        = require('gulp-watch');
+var	wait 		 = require('gulp-wait');
+var postcss      = require('gulp-postcss');
+var autoprefixer = require('autoprefixer');
 
 gulp.task('sass', function(){
   	return sass('scss/*.scss', {
@@ -28,24 +19,16 @@ gulp.task('sass', function(){
 	  		emitCompileError: true
 	  	})
   		.on('error', sass.logError)
-    	.pipe(gulp.dest('css'));
+    	.pipe(gulp.dest('./tmp/css'));
 });
 
-
-//** Sass para PROD
-
-//**  gulp.task('sass', function(){
-//**    	return sass('scss/min/styles.scss', {
-//**    			style: 'compressed',
-//**  	  		emitCompileError: true
-//**  	  	})
-//**    		.on('error', sass.logError)
-//**      	.pipe(gulp.dest('css/min'));
-//**  });
-
-
 gulp.task('scripts', function(){
-	return gulp.src('js/*.js')
+	return gulp.src([
+            'libs/jquery/jquery.js',
+            'libs/tiny/tiny.js',
+            'libs/chico/ui/chico.js',
+            'js/*.js'
+        ])
 		.pipe(sourcemaps.init())
         .pipe(concat('concat.js'))
         .pipe(gulp.dest('tmp'))
@@ -55,11 +38,18 @@ gulp.task('scripts', function(){
         .pipe(gulp.dest('js/min'));
 });
 
-gulp.task('html', function(){
-	return gulp.src('index_expanded.html')
-        .pipe(rename('index.html'))
-        .pipe(uglify())
-        .pipe(gulp.dest('./'));
+gulp.task('minify-css', function() {
+    return gulp.src([
+            'libs/chico/ui/chico.min.css',
+            'tmp/css/*.css'
+        ])
+        .pipe(sourcemaps.init())
+        .pipe(postcss([ autoprefixer({ browsers: ['last 2 versions'] }) ]))
+        .pipe(concat('styles.css'))
+        .pipe(wait(1500))
+        .pipe(minifyCss())
+        .pipe(sourcemaps.write('./maps', {addComment: false}))
+        .pipe(gulp.dest('css'));
 });
 
 gulp.task('minify-html', function() {
@@ -75,10 +65,10 @@ gulp.task('minify-html', function() {
 });
 
 gulp.task('watch', function(){
-	gulp.watch('scss/**/*.scss', ['sass']);
-	gulp.watch('css/**/*.css', ['autoprefixer']);
-	gulp.watch('js/**/*.js', ['scripts']);
-	gulp.watch('index_expanded.html', ['minify-html']);
+    gulp.watch('scss/**/*.scss', ['sass']);
+	gulp.watch('tmp/css/*.css', ['minify-css']);
+    gulp.watch('js/*.js', ['scripts']);
+    gulp.watch('index_expanded.html', ['minify-html']);
 });
 
-gulp.task('default', ['sass', 'watch', 'scripts', 'minify-html']);
+gulp.task('default', ['sass', 'scripts', 'minify-html', 'minify-css', 'watch']);
