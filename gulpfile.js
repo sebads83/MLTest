@@ -48,6 +48,10 @@ gulp.task('minify-css', function() {
         .pipe(concat('styles.css'))
         .pipe(wait(1500))
         .pipe(minifyCss())
+        .on('error', function(err) {
+                gutil.log(err.message);
+                gutil.beep();
+        })
         .pipe(sourcemaps.write('./maps', {addComment: false}))
         .pipe(gulp.dest('css'));
 });
